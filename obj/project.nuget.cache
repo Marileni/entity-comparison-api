@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "325U78CxUTIzYvaLLv1GoHVzvdm2c19IK8K4MB0q6BEnm0gnn0Bd+IuB9LDy65szN0gKOlKX2N2iSgucYRIIUw==",
+  "dgSpecHash": "D3mLQlUX/jNEd0jIJl6FE1adfynbPlQ8p6RQsDbs2bH7GJctDo650AUKEGyDCMA446c3amhdhV8/wQ/sR5sU3g==",
   "success": true,
-  "projectFilePath": "C:\\Users\\maril\\OneDrive\\Documents\\csd 4.1\\Thesis\\project\\APIs\\APIs.csproj",
+  "projectFilePath": "C:\\Users\\maril\\OneDrive\\Documents\\CSD\\csd 4.1\\Thesis\\project\\APIs\\APIs.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\maril\\.nuget\\packages\\anglesharp\\0.16.0\\anglesharp.0.16.0.nupkg.sha512",
     "C:\\Users\\maril\\.nuget\\packages\\dotnetrdf\\2.7.5\\dotnetrdf.2.7.5.nupkg.sha512",
