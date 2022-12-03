@@ -19,7 +19,6 @@ namespace APIs.Controllers
         [HttpGet("{entity}")]
         public IActionResult DBpediaTriples(string entity)
         {
-            //endpoint = endpoint.Replace("%2F", "/");
             string endpoint = "http://dbpedia.org/sparql";
             entity = entity.Replace("%2F", "/");
 
@@ -33,7 +32,6 @@ namespace APIs.Controllers
         [HttpGet("common/entity/{entity1}/{entity2}")]
         public IActionResult DBpediaTriplesCommon(string entity1, string entity2)
         {
-            //endpoint = endpoint.Replace("%2F", "/");
             string endpoint = "http://dbpedia.org/sparql";
             entity1 = entity1.Replace("%2F", "/");
             entity2 = entity2.Replace("%2F", "/");
@@ -48,7 +46,6 @@ namespace APIs.Controllers
         [HttpGet("all/properties/of/entity/{entity1}")]
         public IActionResult DBpediaTriplesAllProp(string entity1)
         {
-            //endpoint = endpoint.Replace("%2F", "/");
             string endpoint = "http://dbpedia.org/sparql";
             entity1 = entity1.Replace("%2F", "/");
 
@@ -62,7 +59,6 @@ namespace APIs.Controllers
         [HttpGet("specific/{property}/{entity1}")]
         public IActionResult DBpediaTriplesSpecificPr(string entity1, string property)
         {
-            //endpoint = endpoint.Replace("%2F", "/");
             string endpoint = "http://dbpedia.org/sparql";
             entity1 = entity1.Replace("%2F", "/");
             property = property.Replace("%2F", "/");
@@ -103,11 +99,6 @@ namespace APIs.Controllers
                 foreach (SparqlResult result in rset.Results)
                 {
                     string predicate = result.Value("predicate").ToString();
-                    //string objectSP = result.Value("object").ToString();
-
-                    //objectSP = objectSP.Replace("\"", "");
-                    //objectSP = objectSP.Replace("\\", "\\\\");
-                   // objectSP = objectSP.Replace("\n", " ");
 
                     jsonOutput += "{\"predicate\":\"" + predicate + "\"},\n";
                 }
@@ -203,11 +194,6 @@ namespace APIs.Controllers
         {
             string jsonOutput = "[";
             string query = "select * where { <" + URLofEntity1 + "> ?predicate ?object . <" + URLofEntity2 + "> ?predicate ?object}";
-
-            /*if (bothSides == true)
-            {
-                query = "Select ?predicate ?object where {{<" + URLofEntity + "> ?predicate ?object} UNION {?object ?predicate <" + URLofEntity + ">}}";
-            }*/
 
             try
             {
