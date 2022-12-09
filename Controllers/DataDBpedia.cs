@@ -113,14 +113,14 @@ namespace APIs.Controllers
 
                     foreach (SparqlResult result2 in rset2.Results)
                     {
-                        string predicate = result2.Value("predicate").ToString();
+                        string predicate = result2.Value("predicate").ToString() + "*";
                         allPredicates.Add(predicate);
                         //jsonOutput += "{\"predicate\":\"" +predicate.Replace("http://dbpedia.org/property/", "dbp:").Replace("http://dbpedia.org/ontology/", "dbo:") + "*\"},\n";
                     }
                 }
                 allPredicates.Sort();
                 foreach (var pred in allPredicates.Distinct())
-                    jsonOutput += "{\"predicate\":\"" + pred.Replace("http://dbpedia.org/property/", "dbp:").Replace("http://dbpedia.org/ontology/", "dbo:") + "*\"},\n";
+                    jsonOutput += "{\"predicate\":\"" + pred.Replace("http://dbpedia.org/property/", "dbp:").Replace("http://dbpedia.org/ontology/", "dbo:") + "\"},\n";
                 jsonOutput = jsonOutput.Remove(jsonOutput.Length - 2);
                 jsonOutput += "]";
             }
