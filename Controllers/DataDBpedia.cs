@@ -22,7 +22,7 @@ namespace APIs.Controllers
             string endpoint = "http://dbpedia.org/sparql";
             entity = entity.Replace("%2F", "/");
 
-            Boolean bothSides = false;
+            Boolean bothSides = true;
             string triples = getJSONforSPARQLQuery(entity, endpoint, bothSides);
 
             return Ok(triples);
@@ -36,7 +36,7 @@ namespace APIs.Controllers
             entity1 = entity1.Replace("%2F", "/");
             entity2 = entity2.Replace("%2F", "/");
 
-            Boolean bothSides = false;
+            Boolean bothSides = true;
             string triples = getJSONforSPARQLQueryCommon(entity1, entity2, endpoint, bothSides);
 
             return Ok(triples);
@@ -49,7 +49,7 @@ namespace APIs.Controllers
             string endpoint = "http://dbpedia.org/sparql";
             entity1 = entity1.Replace("%2F", "/");
 
-            Boolean bothSides = false;
+            Boolean bothSides = true;
             string triples = getAllProperties(entity1, endpoint, bothSides);
 
             return Ok(triples);
@@ -84,11 +84,9 @@ namespace APIs.Controllers
         private string getAllProperties(string URLofEntity, string endpoint1, bool bothSides)
         {
             string jsonOutput = "[";
-            string query = "Select distinct ?predicate where {<" + URLofEntity + "> ?predicate ?object}";
-            if (bothSides == true)
-            {
-                query = "Select ?predicate ?object where {{<" + URLofEntity + "> ?predicate ?object} UNION {?object ?predicate <" + URLofEntity + ">}}";
-            }
+            jsonOutput += "{\"predicate\":\"http://www.w3.org/1999/02/22-rdf-syntax-ns#type\"},\n";
+            string query = "Select distinct ?predicate where {<" + URLofEntity + "> ?predicate ?object} order by asc(str(?predicate))";
+            List<string> allPredicates = new List<string>();
             try
             {
                 SparqlRemoteEndpoint endpoint = new SparqlRemoteEndpoint(new Uri(endpoint1));
@@ -100,8 +98,29 @@ namespace APIs.Controllers
                 {
                     string predicate = result.Value("predicate").ToString();
 
-                    jsonOutput += "{\"predicate\":\"" + predicate + "\"},\n";
+                    if (predicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                        allPredicates.Add(predicate);
+
+                    //jsonOutput += "{\"predicate\":\"" + predicate.Replace("http://dbpedia.org/property/", "dbp:").Replace("http://dbpedia.org/ontology/", "dbo:") + "\"},\n";
                 }
+
+                if (bothSides == true)
+                {
+                    string query2 = "Select distinct ?predicate where { ?object ?predicate <" + URLofEntity + "> } order by asc(str(?predicate))";
+                    SparqlRemoteEndpoint endpoint2 = new SparqlRemoteEndpoint(new Uri(endpoint1));
+                    SparqlResultSet rset2 = endpoint2.QueryWithResultSet(query2);
+
+
+                    foreach (SparqlResult result2 in rset2.Results)
+                    {
+                        string predicate = result2.Value("predicate").ToString();
+                        allPredicates.Add(predicate);
+                        //jsonOutput += "{\"predicate\":\"" +predicate.Replace("http://dbpedia.org/property/", "dbp:").Replace("http://dbpedia.org/ontology/", "dbo:") + "*\"},\n";
+                    }
+                }
+                allPredicates.Sort();
+                foreach (var pred in allPredicates.Distinct())
+                    jsonOutput += "{\"predicate\":\"" + pred.Replace("http://dbpedia.org/property/", "dbp:").Replace("http://dbpedia.org/ontology/", "dbo:") + "*\"},\n";
                 jsonOutput = jsonOutput.Remove(jsonOutput.Length - 2);
                 jsonOutput += "]";
             }
@@ -117,12 +136,15 @@ namespace APIs.Controllers
         //Get the data of a specific property
         private string getSpecificProperty(string URLofEntity, string property, string endpoint1, bool bothSides)
         {
+            String newProperty = property.Replace("dbp:", "http://dbpedia.org/property/").Replace("dbo:", "http://dbpedia.org/ontology/");
+            string query = "Select <" + newProperty + "> as ?predicate ?object where {<" + URLofEntity + "> <" + newProperty + "> ?object}";
             string jsonOutput = "[";
-            string query = "Select <" + property + "> as ?predicate ?object where {<" + URLofEntity + "> <"+ property + "> ?object}";
-            if (bothSides == true)
+            if (property.EndsWith("*"))
             {
-                query = "Select ?predicate ?object where {{<" + URLofEntity + "> ?predicate ?object} UNION {?object ?predicate <" + URLofEntity + ">}}";
+                string property2 = newProperty.Remove(newProperty.Length - 1);
+                query = "Select <" + property2 + "> as ?predicate ?object where {?object <" + property2 + "> <" + URLofEntity + ">}";
             }
+
             try
             {
                 SparqlRemoteEndpoint endpoint = new SparqlRemoteEndpoint(new Uri(endpoint1));
@@ -130,7 +152,7 @@ namespace APIs.Controllers
 
                 foreach (SparqlResult result in rset.Results)
                 {
-                    string predicate = result.Value("predicate").ToString();
+                    string predicate = property;//result.Value("predicate").ToString();
                     string objectSP = result.Value("object").ToString();
 
                     objectSP = objectSP.Replace("\"", "");
@@ -157,10 +179,7 @@ namespace APIs.Controllers
         {
             string jsonOutput = "[";
             string query = "Select ?predicate ?object where {<" + URLofEntity + "> ?predicate ?object}";
-            if (bothSides == true)
-            {
-                query = "Select ?predicate ?object where {{<" + URLofEntity + "> ?predicate ?object} UNION {?object ?predicate <" + URLofEntity + ">}}";
-            }
+
             try
             {
                 SparqlRemoteEndpoint endpoint = new SparqlRemoteEndpoint(new Uri(endpoint1));
@@ -169,14 +188,43 @@ namespace APIs.Controllers
                 foreach (SparqlResult result in rset.Results)
                 {
                     string predicate = result.Value("predicate").ToString();
+                    if (predicate.StartsWith("http://dbpedia.org/ontology/wiki") || predicate.StartsWith("http://dbpedia.org/property/wiki"))
+                    {
+                        continue;
+                    }
                     string objectSP = result.Value("object").ToString();
 
                     objectSP = objectSP.Replace("\"", "");
                     objectSP = objectSP.Replace("\\", "\\\\");
                     objectSP = objectSP.Replace("\n", " ");
 
-                    jsonOutput += "{\"predicate\":\"" + predicate + "\",\"object\":\"" + objectSP + "\"},\n";
+                    jsonOutput += "{\"predicate\":\"" + predicate.Replace("http://dbpedia.org/property/", "dbp:").Replace("http://dbpedia.org/ontology/", "dbo:") + "\",\"object\":\"" + objectSP + "\"},\n";
                 }
+                if (bothSides == true)
+                {
+                    string query2 = "Select ?predicate ?object where {?object ?predicate <" + URLofEntity + ">}";
+
+                    SparqlRemoteEndpoint endpoint2 = new SparqlRemoteEndpoint(new Uri(endpoint1));
+                    SparqlResultSet rset2 = endpoint.QueryWithResultSet(query2);
+
+                    foreach (SparqlResult result2 in rset2.Results)
+                    {
+                        string predicate = result2.Value("predicate").ToString();
+                        if (predicate.StartsWith("http://dbpedia.org/ontology/wiki") || predicate.StartsWith("http://dbpedia.org/property/wiki"))
+                        {
+                            continue;
+                        }
+                        string objectSP = result2.Value("object").ToString();
+
+                        objectSP = objectSP.Replace("\"", "");
+                        objectSP = objectSP.Replace("\\", "\\\\");
+                        objectSP = objectSP.Replace("\n", " ");
+
+                        jsonOutput += "{\"predicate\":\"" + predicate.Replace("http://dbpedia.org/property/", "dbp:").Replace("http://dbpedia.org/ontology/", "dbo:") + " *\",\"object\":\"" + objectSP + "\"},\n";
+                    }
+
+                }
+
                 jsonOutput = jsonOutput.Remove(jsonOutput.Length - 2);
                 jsonOutput += "]";
             }
@@ -193,7 +241,7 @@ namespace APIs.Controllers
         private string getJSONforSPARQLQueryCommon(string URLofEntity1, string URLofEntity2, string endpoint1, bool bothSides)
         {
             string jsonOutput = "[";
-            string query = "select * where { <" + URLofEntity1 + "> ?predicate ?object . <" + URLofEntity2 + "> ?predicate ?object}";
+            string query = "select * where { <" + URLofEntity1 + "> ?predicate ?object . <" + URLofEntity2 + "> ?predicate ?object. }";
 
             try
             {
@@ -204,14 +252,42 @@ namespace APIs.Controllers
                 {
                     Console.WriteLine(result);
                     string predicate = result.Value("predicate").ToString();
+                    if (predicate.StartsWith("http://dbpedia.org/ontology/wiki") || predicate.StartsWith("http://dbpedia.org/property/wiki"))
+                    {
+                        continue;
+                    }
                     string objectSP = result.Value("object").ToString();
 
                     objectSP = objectSP.Replace("\"", "");
                     objectSP = objectSP.Replace("\\", "\\\\");
                     objectSP = objectSP.Replace("\n", " ");
 
-                    jsonOutput += "{\"predicate\":\"" + predicate + "\",\"object\":\"" + objectSP + "\"},\n";
+                    jsonOutput += "{\"predicate\":\"" + predicate.Replace("http://dbpedia.org/property/", "dbp:").Replace("http://dbpedia.org/ontology/", "dbo:") + "\",\"object\":\"" + objectSP + "\"},\n";
                 }
+                if (bothSides == true)
+                {
+                    string query2 = "Select ?predicate ?object where {{?object ?predicate <" + URLofEntity1 + "> . ?object ?predicate <" + URLofEntity2 + ">}}";
+                    SparqlRemoteEndpoint endpoint2 = new SparqlRemoteEndpoint(new Uri(endpoint1));
+                    SparqlResultSet rset2 = endpoint2.QueryWithResultSet(query2);
+
+                    foreach (SparqlResult result2 in rset2.Results)
+                    {
+
+                        string predicate = result2.Value("predicate").ToString();
+                        if (predicate.StartsWith("http://dbpedia.org/ontology/wiki") || predicate.StartsWith("http://dbpedia.org/property/wiki"))
+                        {
+                            continue;
+                        }
+                        string objectSP = result2.Value("object").ToString();
+
+                        objectSP = objectSP.Replace("\"", "");
+                        objectSP = objectSP.Replace("\\", "\\\\");
+                        objectSP = objectSP.Replace("\n", " ");
+
+                        jsonOutput += "{\"predicate\":\"" + predicate.Replace("http://dbpedia.org/property/", "dbp:").Replace("http://dbpedia.org/ontology/", "dbo:") + " *\",\"object\":\"" + objectSP + "\"},\n";
+                    }
+                }
+
                 jsonOutput = jsonOutput.Remove(jsonOutput.Length - 2);
                 jsonOutput += "]";
             }
